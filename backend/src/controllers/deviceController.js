@@ -68,7 +68,7 @@ const createDevice = async (req, res) => {
             farm: farmId,
             deviceId,
             name,
-            status: status || 'offline',
+            status: status || 'online',
             apiKey, // In real app, hash this! returning raw here for setup
         });
 

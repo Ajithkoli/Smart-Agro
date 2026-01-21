@@ -7,19 +7,73 @@ import { MapPinIcon, BellAlertIcon, CubeIcon } from '@heroicons/react/24/outline
 
 const FarmerDashboard = () => {
     const [farms, setFarms] = useState([]);
+    const [stats, setStats] = useState({
+        totalFarms: 0,
+        activeDevices: 0,
+        alerts: 0
+    });
+    const [recentAlerts, setRecentAlerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleFarmAdded = (newFarm) => {
         setFarms((prev) => [...prev, newFarm]);
+        setStats(prev => ({ ...prev, totalFarms: prev.totalFarms + 1 }));
     };
 
     useEffect(() => {
         const fetchData = async () => {
             try {
+                // 1. Fetch Farms
                 const farmsRes = await apiClient.get('/farms');
                 setFarms(farmsRes.data);
-                setLoading(false);
+
+                // 2. Fetch Devices to calculate Active Devices & Alerts
+                const devicesRes = await apiClient.get('/devices');
+                const devices = devicesRes.data;
+                const activeDevs = devices.filter(d => d.status === 'online').length;
+
+                // 3. Move Loading State Update HERE
+                setLoading(false); // Show dashboard immediately
+
+                // 4. Calculate Alerts (Background)
+                const alertPromises = devices.map(async (device) => {
+                    try {
+                        const res = await apiClient.get(`/readings/device/${device._id}?limit=1`);
+                        const readings = res.data;
+                        if (readings.length > 0) {
+                            const latest = readings[readings.length - 1];
+
+                            // Threshold Logic & Message Generation
+                            if (latest.soilMoisture < 30) {
+                                return { device: device.name, type: 'Critical', message: 'Low Soil Moisture', value: `${latest.soilMoisture}%`, time: latest.timestamp };
+                            }
+                            if (latest.temperature > 35) {
+                                return { device: device.name, type: 'Warning', message: 'High Temperature', value: `${latest.temperature}°C`, time: latest.timestamp };
+                            }
+                            if (latest.humidity < 20) {
+                                return { device: device.name, type: 'Warning', message: 'Low Humidity', value: `${latest.humidity}%`, time: latest.timestamp };
+                            }
+                            if (latest.nitrogen < 40) {
+                                return { device: device.name, type: 'Info', message: 'Nutrient Deficiency (N)', value: `${latest.nitrogen} mg/kg`, time: latest.timestamp };
+                            }
+                        }
+                    } catch (e) {
+                        return null;
+                    }
+                    return null;
+                });
+
+                const alertResults = await Promise.all(alertPromises);
+                const activeAlerts = alertResults.filter(Boolean);
+
+                setRecentAlerts(activeAlerts);
+                // Update stats with alert count (functional update to preserve other stats)
+                setStats(prev => ({
+                    ...prev,
+                    alerts: activeAlerts.length
+                }));
+
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
                 setLoading(false);
@@ -32,7 +86,7 @@ const FarmerDashboard = () => {
     if (loading) return <div className="text-center mt-20 text-agri-green-600 animate-pulse font-semibold">Loading Dashboard...</div>;
 
     return (
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-6 py-8 pb-20">
             <div className="flex justify-between items-end mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">Farmer Dashboard</h1>
@@ -50,23 +104,52 @@ const FarmerDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                 <StatCard
                     title="Total Farms"
-                    value={farms.length}
+                    value={stats.totalFarms}
                     icon={<MapPinIcon className="w-6 h-6" />}
                     color="green"
                 />
                 <StatCard
-                    title="Active Devices"
-                    value={farms.length * 2} // Mock for demo
+                    title="Active Sensors"
+                    value={stats.activeDevices}
                     icon={<CubeIcon className="w-6 h-6" />}
                     color="blue"
                 />
                 <StatCard
-                    title="Recent Alerts"
-                    value={3} // Mock for demo
+                    title="Critical Alerts"
+                    value={stats.alerts}
                     icon={<BellAlertIcon className="w-6 h-6" />}
                     color="red"
                 />
             </div>
+
+            {/* Alert Section */}
+            {recentAlerts.length > 0 && (
+                <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <BellAlertIcon className="w-6 h-6 text-red-500" />
+                        Active Actions Required
+                    </h2>
+                    <div className="bg-white rounded-xl shadow-sm border border-red-100 overflow-hidden">
+                        {recentAlerts.map((alert, idx) => (
+                            <div key={idx} className="p-4 border-b border-gray-100 last:border-0 flex items-center justify-between hover:bg-red-50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className={`p-2 rounded-full ${alert.type === 'Critical' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                                        <BellAlertIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-gray-900">{alert.message}</h4>
+                                        <p className="text-sm text-gray-500">Sensor: {alert.device}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-gray-900">{alert.value}</p>
+                                    <p className="text-xs text-gray-400">Just now</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Farms Grid */}
             <div className="mb-12">
@@ -84,11 +167,11 @@ const FarmerDashboard = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {farms.map((farm) => (
-                            <Link key={farm._id} to={`/farms/${farm._id}`} className="card-panel p-0 hover:shadow-xl group overflow-hidden block">
+                            <Link key={farm._id} to={`/farms/${farm._id}`} className="card-panel p-0 hover:shadow-xl group overflow-hidden block transition-all duration-300">
                                 <div className="h-40 bg-gray-200 relative">
-                                    {/* Placeholder Farm Image */}
+                                    {/* Farm Image */}
                                     <img
-                                        src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&q=80&w=500"
+                                        src={farm.imageUrl || `https://images.unsplash.com/photo-1625246333195-bf7fbc267e38?auto=format&fit=crop&q=80&w=500&random=${farm._id}`}
                                         alt="Farm"
                                         className="w-full h-full object-cover"
                                     />

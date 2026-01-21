@@ -11,6 +11,9 @@ const farmSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        imageUrl: {
+            type: String,
+        },
         location: {
             latitude: Number,
             longitude: Number,

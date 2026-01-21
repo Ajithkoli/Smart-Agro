@@ -44,7 +44,25 @@ const getFarm = async (req, res) => {
 // @route   POST /api/farms
 // @access  Private
 const createFarm = async (req, res) => {
-    const { name, location, areaInAcres, primaryCrops } = req.body;
+    let { name, location, areaInAcres, primaryCrops } = req.body;
+    const imageUrl = req.file ? req.file.path : undefined;
+
+    // Parse JSON strings if coming from FormData (Multipart)
+    if (typeof location === 'string') {
+        try {
+            location = JSON.parse(location);
+        } catch (e) {
+            console.error('Error parsing location:', e);
+        }
+    }
+    if (typeof primaryCrops === 'string') {
+        try {
+            primaryCrops = JSON.parse(primaryCrops); // Expecting ["Crop1", "Crop2"] string
+        } catch (e) {
+            // Fallback if it's just a comma-separated string
+            primaryCrops = primaryCrops.split(',').map(c => c.trim());
+        }
+    }
 
     if (!name) {
         return res.status(400).json({ message: 'Please add a farm name' });
@@ -57,6 +75,7 @@ const createFarm = async (req, res) => {
             location,
             areaInAcres,
             primaryCrops,
+            imageUrl,
         });
 
         res.status(201).json(farm);

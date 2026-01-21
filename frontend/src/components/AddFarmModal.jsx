@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import apiClient from '../services/apiClient';
 
 const AddFarmModal = ({ isOpen, onClose, onFarmAdded }) => {
@@ -11,6 +11,7 @@ const AddFarmModal = ({ isOpen, onClose, onFarmAdded }) => {
         areaInAcres: '',
         primaryCrops: ''
     });
+    const [imageFile, setImageFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -20,27 +21,43 @@ const AddFarmModal = ({ isOpen, onClose, onFarmAdded }) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files[0]) {
+            setImageFile(e.target.files[0]);
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            const payload = {
-                name: formData.name,
-                location: {
-                    village: formData.village,
-                    district: formData.district,
-                    state: formData.state
-                },
-                areaInAcres: Number(formData.areaInAcres),
-                primaryCrops: formData.primaryCrops.split(',').map(crop => crop.trim())
-            };
+            const data = new FormData();
+            data.append('name', formData.name);
+            data.append('location', JSON.stringify({
+                village: formData.village,
+                district: formData.district,
+                state: formData.state
+            }));
+            data.append('areaInAcres', formData.areaInAcres);
+            const crops = formData.primaryCrops.split(',').map(crop => crop.trim());
+            data.append('primaryCrops', JSON.stringify(crops));
 
-            const res = await apiClient.post('/farms', payload);
+            if (imageFile) {
+                data.append('image', imageFile);
+            }
+
+            const res = await apiClient.post('/farms', data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
             onFarmAdded(res.data);
             onClose();
-            setFormData({ name: '', village: '', district: '', state: '', areaInAcres: '', primaryCrops: '' }); // Reset
+            setFormData({ name: '', village: '', district: '', state: '', areaInAcres: '', primaryCrops: '' });
+            setImageFile(null);
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.message || 'Failed to add farm');
@@ -61,6 +78,23 @@ const AddFarmModal = ({ isOpen, onClose, onFarmAdded }) => {
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">{error}</div>}
+
+                    {/* Image Upload */}
+                    <div className="flex items-center justify-center w-full">
+                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 border-gray-300">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                {imageFile ? (
+                                    <p className="text-sm text-green-600 font-semibold">{imageFile.name}</p>
+                                ) : (
+                                    <>
+                                        <PhotoIcon className="w-8 h-8 text-gray-400 mb-2" />
+                                        <p className="text-sm text-gray-500"><span className="font-semibold">Click to upload</span> farm photo</p>
+                                    </>
+                                )}
+                            </div>
+                            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                        </label>
+                    </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Farm Name</label>

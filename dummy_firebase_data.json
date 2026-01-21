@@ -1,0 +1,73 @@
+{
+    "devices": {
+        "SN-2024-TEST-001": {
+            "name": "Field Alpha Sensor",
+            "status": "online",
+            "lastUpdated": 1769008279000,
+            "readings": {
+                "r1": {
+                    "timestamp": 1769008200000,
+                    "nitrogen": 90,
+                    "phosphorus": 42,
+                    "potassium": 43,
+                    "temperature": 20.8,
+                    "humidity": 82.0,
+                    "pH": 6.5,
+                    "rainfall": 202.9,
+                    "soilMoisture": 60
+                },
+                "r2": {
+                    "timestamp": 1769008205000,
+                    "nitrogen": 89,
+                    "phosphorus": 41,
+                    "potassium": 44,
+                    "temperature": 21.0,
+                    "humidity": 81.5,
+                    "pH": 6.4,
+                    "rainfall": 202.9,
+                    "soilMoisture": 58
+                },
+                "r3": {
+                    "timestamp": 1769008210000,
+                    "nitrogen": 88,
+                    "phosphorus": 40,
+                    "potassium": 42,
+                    "temperature": 21.2,
+                    "humidity": 81.0,
+                    "pH": 6.5,
+                    "rainfall": 202.9,
+                    "soilMoisture": 57
+                },
+                "r4": {
+                    "timestamp": 1769008215000,
+                    "nitrogen": 85,
+                    "phosphorus": 39,
+                    "potassium": 40,
+                    "temperature": 22.1,
+                    "humidity": 80.0,
+                    "pH": 6.6,
+                    "rainfall": 0,
+                    "soilMoisture": 55
+                }
+            }
+        },
+        "SN-2024-TEST-002": {
+            "name": "Greenhouse Beta",
+            "status": "online",
+            "lastUpdated": 1769008279000,
+            "readings": {
+                "r1": {
+                    "timestamp": 1769008200000,
+                    "nitrogen": 50,
+                    "phosphorus": 60,
+                    "potassium": 55,
+                    "temperature": 25.5,
+                    "humidity": 60.5,
+                    "pH": 7.2,
+                    "rainfall": 150.2,
+                    "soilMoisture": 40
+                }
+            }
+        }
+    }
+}

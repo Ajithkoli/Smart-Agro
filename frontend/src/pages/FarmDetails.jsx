@@ -4,7 +4,7 @@ import apiClient from '../services/apiClient';
 import SensorChart from '../components/SensorChart';
 import AddDeviceModal from '../components/AddDeviceModal';
 import FarmSettingsModal from '../components/FarmSettingsModal';
-import { MapPinIcon, CpuChipIcon, SunIcon, CloudIcon, BeakerIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, CpuChipIcon, SunIcon, CloudIcon, BeakerIcon, ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const FarmDetails = () => {
     const { id } = useParams();
@@ -39,6 +39,28 @@ const FarmDetails = () => {
         fetchFarmData();
     }, [id]);
 
+    const handleDeleteDevice = async (e, deviceId) => {
+        e.stopPropagation(); // Prevent triggering the row click
+        if (!window.confirm('Are you sure you want to delete this sensor? This action cannot be undone.')) return;
+
+        try {
+            await apiClient.delete(`/devices/${deviceId}`);
+            setDevices(prev => prev.filter(d => d._id !== deviceId));
+
+            // If the deleted device was selected, select the first available one or null
+            if (selectedDevice?._id === deviceId) {
+                setDevices(prev => {
+                    const remaining = prev.filter(d => d._id !== deviceId);
+                    setSelectedDevice(remaining.length > 0 ? remaining[0] : null);
+                    return remaining;
+                });
+            }
+        } catch (error) {
+            console.error('Failed to delete device:', error);
+            alert('Failed to delete device');
+        }
+    };
+
     useEffect(() => {
         if (!selectedDevice) return;
 
@@ -71,17 +93,25 @@ const FarmDetails = () => {
                 <Link to="/dashboard" className="text-gray-500 hover:text-agri-green-600 mb-4 inline-flex items-center gap-1 font-medium text-sm transition-colors">
                     <ArrowLeftIcon className="w-4 h-4" /> Back to Dashboard
                 </Link>
-                <div className="flex justify-between items-end">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-900 mb-2">{farm.name}</h1>
-                        <p className="text-gray-500 flex items-center gap-2">
-                            <MapPinIcon className="w-5 h-5 text-gray-400" />
+
+                {/* Farm Banner Image */}
+                <div className="h-64 w-full rounded-2xl overflow-hidden mb-6 relative shadow-md group">
+                    <img
+                        src={farm.imageUrl || `https://images.unsplash.com/photo-1625246333195-bf7fbc267e38?auto=format&fit=crop&q=80&w=1200&random=${farm._id}`}
+                        alt={farm.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-6 left-8 text-white">
+                        <h1 className="text-4xl font-bold text-white mb-2 shadow-sm">{farm.name}</h1>
+                        <p className="text-gray-100 flex items-center gap-2 font-medium">
+                            <MapPinIcon className="w-5 h-5 text-agri-green-400" />
                             {farm.location?.village}, {farm.location?.district} ({farm.areaInAcres} Acres)
                         </p>
                     </div>
                     <button
                         onClick={() => setIsSettingsModalOpen(true)}
-                        className="btn-outline text-gray-600 border-gray-300 hover:border-gray-400"
+                        className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white border border-white/50 px-4 py-2 rounded-lg transition-all"
                     >
                         Settings
                     </button>
@@ -105,18 +135,27 @@ const FarmDetails = () => {
                             <div
                                 key={device._id}
                                 onClick={() => setSelectedDevice(device)}
-                                className={`p-4 rounded-lg cursor-pointer transition-all border flex items-center gap-3 ${selectedDevice?._id === device._id ? 'bg-agri-green-50 border-agri-green-200 ring-1 ring-agri-green-200' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
+                                className={`group p-4 rounded-lg cursor-pointer transition-all border flex items-center justify-between gap-3 ${selectedDevice?._id === device._id ? 'bg-agri-green-50 border-agri-green-200 ring-1 ring-agri-green-200' : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}
                             >
-                                <div className={`p-2 rounded-lg ${device.status === 'online' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                                    <CpuChipIcon className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="font-bold text-sm text-gray-800">{device.name}</p>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className={`w-2 h-2 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                                        <p className="text-xs text-gray-500 uppercase font-medium">{device.status}</p>
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${device.status === 'online' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                                        <CpuChipIcon className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-gray-800">{device.name}</p>
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className={`w-2 h-2 rounded-full ${device.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                            <p className="text-xs text-gray-500 uppercase font-medium">{device.status}</p>
+                                        </div>
                                     </div>
                                 </div>
+                                <button
+                                    onClick={(e) => handleDeleteDevice(e, device._id)}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                                    title="Delete Sensor"
+                                >
+                                    <TrashIcon className="w-5 h-5" />
+                                </button>
                             </div>
                         ))}
                         {devices.length === 0 && <p className="text-gray-400 text-sm italic">No devices found.</p>}
