@@ -56,8 +56,10 @@ const LoginPage = () => {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                             <input
+                                id="email"
+                                name="email"
                                 type="email"
                                 required
                                 className="input-field"
@@ -68,10 +70,12 @@ const LoginPage = () => {
                         </div>
                         <div>
                             <div className="flex justify-between items-center mb-1">
-                                <label className="block text-sm font-medium text-gray-700">Password</label>
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
                                 <a href="#" className="text-sm text-agri-green-600 hover:underline">Forgot password?</a>
                             </div>
                             <input
+                                id="password"
+                                name="password"
                                 type="password"
                                 required
                                 className="input-field"
