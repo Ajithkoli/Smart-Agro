@@ -30,9 +30,11 @@ apiClient.interceptors.response.use(
     },
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Auto logout if 401
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Auto logout if 401, but NOT if we are already trying to login
+            if (!error.config.url.includes('/auth/login')) {
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
