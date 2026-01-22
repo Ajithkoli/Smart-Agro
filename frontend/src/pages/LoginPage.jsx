@@ -66,6 +66,7 @@ const LoginPage = () => {
                                 placeholder="farmer@example.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                                autocomplete="email"
                             />
                         </div>
                         <div>
@@ -82,6 +83,7 @@ const LoginPage = () => {
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                autocomplete="current-password"
                             />
                         </div>
                         <button type="submit" className="btn-primary w-full shadow-lg">
